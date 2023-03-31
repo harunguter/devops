@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+    # Database instance
+    mssql:
+      image: mcr.microsoft.com/azure-sql-edge:latest
+      container_name: mssql_server
+      volumes:
+        - events_mssql:/var/opt/mssql
+      ports:
+        - 1433:1433
+      environment:
+        - ACCEPT_EULA=1
+        - MSSQL_SA_PASSWORD=Passw@rd
+
+volumes:
+    events_mssql:
+
+# docker run -e "ACCEPT_EULA=1" -e "MSSQL_SA_PASSWORD=reallyStrongPwd123" -e "MSSQL_PID=Developer" -e "MSSQL_USER=SA" -p 1433:1433 -d --name=sql mcr.microsoft.com/azure-sql-edge
