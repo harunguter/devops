@@ -1,0 +1,44 @@
+name: docker-push-ecr-and-deploy-to-development-server
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+-dev'
+
+jobs:
+  build-and-push-to-ecr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_FOR_ECR}}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_FOR_ECR }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: push to ecr
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          sudo git clone https://${{ secrets.TOKEN }}@github.com/repo-name/${{ github.event.repository.name }}.git
+          cd ${{ github.event.repository.name }}
+          docker build --no-cache -t image-name:dev .
+          docker tag image-name:dev ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/image-name:dev
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/image-name:dev
+  deploy-development-server:
+    runs-on: machine-tag
+    needs: [build-and-push-to-ecr]
+    steps:
+      - name: AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_FOR_ECR}}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_FOR_ECR }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: docker pull and run
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/image-name:dev
+          cd /home/ubuntu/devops
+          docker-compose -f docker-compose-dev.yml up --force-recreate --build -d
+      - name: list running containers
+        run: sudo docker ps
