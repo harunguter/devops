@@ -19,13 +19,13 @@ jobs:
       - name: push to ecr
         run: |
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-          sudo git clone https://${{ secrets.TOKEN }}@github.com/repo-name/${{ github.event.repository.name }}.git
+          sudo git clone https://${{ secrets.TOKEN }}@github.com/#github-username/${{ github.event.repository.name }}.git
           cd ${{ github.event.repository.name }}
           docker build --no-cache -t image-name:dev .
           docker tag image-name:dev ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/image-name:dev
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/image-name:dev
   deploy-development-server:
-    runs-on: machine-tag
+    runs-on: #machine-tag
     needs: [build-and-push-to-ecr]
     steps:
       - name: AWS Credentials
